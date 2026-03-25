@@ -1,0 +1,27 @@
+# Ignore local dev garbage
+node_modules/
+.venv/
+chroma_db/
+test_db/
+test_vector_db/
+*.log
+.DS_Store
+.env
+.env.local
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore documentation sources (keep the final README)
+docs/
+MVP/
+frontend/
+backend/
+ai-service/tests/
+ai-service/core/
+
+# Keep only the symlinked/copied python source
+!python/

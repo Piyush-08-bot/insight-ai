@@ -1,0 +1,33 @@
+{
+  "name": "insight-ai",
+  "version": "0.1.0",
+  "description": "AI-powered code understanding tool. Analyze any codebase with AI — get overviews, learning paths, architecture analysis, and chat with your code. 100% free with Ollama.",
+  "keywords": ["ai", "code-analysis", "rag", "codebase", "llm", "ollama", "langchain", "developer-tools"],
+  "license": "MIT",
+  "author": "Piyush Raj",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/piyushraj/insight-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/piyushraj/insight-ai/issues"
+  },
+  "homepage": "https://github.com/piyushraj/insight-ai#readme",
+  "bin": {
+    "insight": "./bin/insight.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/setup.js",
+    "test": "echo \"Run: insight doctor\""
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "python/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": ["darwin", "linux", "win32"]
+}
