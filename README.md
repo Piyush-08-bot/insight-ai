@@ -23,17 +23,25 @@ Analyze, understand, and chat with any codebase in seconds. INsight uses advance
 npm install -g insight-ai
 ```
 
-=======
 ### 2. Configure (Choose your AI)
 
 **Option A: Cloud AI (Fastest & Most Accurate)**
->>>>>>> backup-local
+Save your keys globally to use them across any project. Supported providers: `openai`, `groq`, `anthropic`, `google`.
+
 ```bash
-# Save your keys globally (OpenAI, Groq, etc.)
-insight config set-key openai sk-...
+# OpenAI (Default)
+insight config set-key openai sk-proj-123...
+
+# Groq (Extreme Speed)
+insight config set-key groq gsk_456...
+
+# Anthropic (Deep Reasoning)
+insight config set-key anthropic sk-ant-789...
+
+# Google Gemini
+insight config set-key google AIzaSy012...
 ```
 
-=======
 **Option B: 100% Local AI (Free & Private)**
 If you don't have an API key, you can run the AI directly on your computer:
 1. Install [Ollama](https://ollama.com).
@@ -43,10 +51,13 @@ If you don't have an API key, you can run the AI directly on your computer:
    ```
 3. Run INsight with the local provider flags:
    ```bash
-   insight analyze . --provider ollama --model qwen2.5-coder
+   # Analyze with local model
+   insight analyze . --embedding ollama
+
+   # Chat with local model
+   insight chat --provider ollama --model qwen2.5-coder
    ```
 
->>>>>>> backup-local
 ### 3. Analyze
 Go to your project folder and run:
 ```bash
