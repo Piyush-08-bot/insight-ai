@@ -1,10 +1,10 @@
 {
   "name": "insight-ai",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "AI-powered codebase analysis in your terminal",
   "type": "module",
   "bin": {
-    "insight": "./bin/insight.js"
+    "insight": "bin/insight.js"
   },
   "main": "dist/cli.js",
   "scripts": {
@@ -21,12 +21,26 @@
     "python/",
     "README.md"
   ],
-  "keywords": ["ai", "code-analysis", "rag", "codebase", "llm", "ollama", "langchain", "developer-tools", "cli"],
+  "keywords": [
+    "ai",
+    "code-analysis",
+    "rag",
+    "codebase",
+    "llm",
+    "ollama",
+    "langchain",
+    "developer-tools",
+    "cli",
+    "code-story"
+  ],
   "license": "MIT",
-  "author": "Piyush Raj",
+  "author": {
+    "name": "Piyush Raj",
+    "url": "https://github.com/Piyush-08-bot"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Piyush-08-bot/insight-ai.git"
+    "url": "git+https://github.com/Piyush-08-bot/insight-ai.git"
   },
   "bugs": {
     "url": "https://github.com/Piyush-08-bot/insight-ai/issues"
