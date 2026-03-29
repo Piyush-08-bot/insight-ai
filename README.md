@@ -13,6 +13,7 @@ Analyze, understand, and chat with any codebase in seconds. INsight uses advance
 - **🧠 Intelligent RAG**: Uses tree-sitter based chunking to understand code structure (Classes, Functions, Imports) better than standard text splitters.
 - **🆓 100% Local Option**: Supports **Ollama** for free, private, local analysis.
 - **⚡ Remote Knowledge Base**: Connects to remote **ChromaDB** servers for centralized team knowledge.
+- **📖 Codebase Storytelling**: Generates a 12-chapter technical narrative of your entire project—the single most powerful codebase analysis.
 
 ---
 
@@ -74,6 +75,9 @@ insight learn
 
 # Map code architecture
 insight architecture
+
+# Generate a 12-chapter technical story of your codebase
+insight story
 ```
 
 ---
@@ -87,6 +91,7 @@ insight architecture
 | `insight config` | Manage global API keys and settings |
 | `insight learn` | Generate a roadmap to learn the codebase |
 | `insight architecture` | Map high-level class and module relationships |
+| `insight story` | Generate a 12-chapter technical narrative of the codebase |
 | `insight report` | Generate a comprehensive PDF/MD report |
 | `insight setup` | Repair or reinstall Python dependencies |
 
