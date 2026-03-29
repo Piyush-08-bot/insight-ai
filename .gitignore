@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
@@ -20,11 +19,19 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+data/
 
 # Virtual Environment
 venv/
 ENV/
 env/
+.venv/
+
+# Node.js
+node_modules/
+dist/
+build/
+*.log
 
 # Environment Variables
 .env
@@ -63,12 +70,3 @@ output/
 # Temporary files
 *.tmp
 temp/
-=======
-.venv/
-node_modules/
-*.pyc
-__pycache__/
-chroma_db/
-data/
-*.egg-info/
->>>>>>> backup-local
