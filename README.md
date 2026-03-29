@@ -23,12 +23,30 @@ Analyze, understand, and chat with any codebase in seconds. INsight uses advance
 npm install -g insight-ai
 ```
 
-### 2. Configure (Set it once)
+=======
+### 2. Configure (Choose your AI)
+
+**Option A: Cloud AI (Fastest & Most Accurate)**
+>>>>>>> backup-local
 ```bash
 # Save your keys globally (OpenAI, Groq, etc.)
 insight config set-key openai sk-...
 ```
 
+=======
+**Option B: 100% Local AI (Free & Private)**
+If you don't have an API key, you can run the AI directly on your computer:
+1. Install [Ollama](https://ollama.com).
+2. Download the recommended code model by running:
+   ```bash
+   ollama run qwen2.5-coder
+   ```
+3. Run INsight with the local provider flags:
+   ```bash
+   insight analyze . --provider ollama --model qwen2.5-coder
+   ```
+
+>>>>>>> backup-local
 ### 3. Analyze
 Go to your project folder and run:
 ```bash

@@ -1,0 +1,1 @@
+{"version":3,"file":"useOllamaStatus.d.ts","sourceRoot":"","sources":["../../src/hooks/useOllamaStatus.ts"],"names":[],"mappings":"AAAA;;GAEG;AAKH,UAAU,YAAY;IACpB,QAAQ,EAAE,OAAO,CAAC;IAClB,OAAO,EAAE,OAAO,CAAC;IACjB,KAAK,CAAC,EAAE,MAAM,CAAC;CAChB;AAED,wBAAgB,eAAe,IAAI,YAAY,CAmB9C"}
