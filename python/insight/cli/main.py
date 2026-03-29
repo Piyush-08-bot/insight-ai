@@ -86,13 +86,17 @@ def get_api_key(provider: str, manual_key: Optional[str] = None) -> Optional[str
     from insight.database.manager import db_manager
     from insight.database.models import User
     
-    with next(db_manager.get_session()) as session:
-        if session:
-            # For now, we assume a single 'admin' user or the first user in the DB
-            # In a full multi-user app, we would use the authenticated user's ID
-            user = session.query(User).filter_by(username="admin").first()
-            if user and user.api_keys and provider.lower() in user.api_keys:
-                return user.api_keys[provider.lower()]
+    if getattr(db_manager, "SessionLocal", None):
+        try:
+            with next(db_manager.get_session()) as session:
+                if session:
+                    # For now, we assume a single 'admin' user or the first user in the DB
+                    # In a full multi-user app, we would use the authenticated user's ID
+                    user = session.query(User).filter_by(username="admin").first()
+                    if user and user.api_keys and provider.lower() in user.api_keys:
+                        return user.api_keys[provider.lower()]
+        except Exception:
+            pass
 
     # 4. Global Config File (Fallback)
     from insight.utils.config_manager import ConfigManager
@@ -170,9 +174,10 @@ def analyze(path, embedding, model, api_key, persist_dir, chunking, append):
             if vs_old:
                 vs_old.clear()
         console.print("[dim]Existing index cleared.[/dim]")
-        # Default file types for analysis
-        default_file_types = ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rb', '.php', '.c', '.cpp', '.h', '.hpp', '.cs', '.swift', '.kt', '.rs', '.vue', '.svelte', '.html', '.css', '.scss', '.less', '.json', '.yaml', '.yml', '.xml', '.sh', '.bash', '.zsh', '.ps1', '.md', '.txt']
-        documents = load_codebase(path, default_file_types)
+    
+    # Default file types for analysis
+    default_file_types = ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rb', '.php', '.c', '.cpp', '.h', '.hpp', '.cs', '.swift', '.kt', '.rs', '.vue', '.svelte', '.html', '.css', '.scss', '.less', '.json', '.yaml', '.yml', '.xml', '.sh', '.bash', '.zsh', '.ps1', '.md', '.txt']
+    documents = load_codebase(path, default_file_types)
 
     if not documents:
         console.print("[error]⨯ No supported source code files found![/error]")

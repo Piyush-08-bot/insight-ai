@@ -1,72 +1,99 @@
-# 🔍 INsight - AI-Powered Code Understanding Tool
+# 🔍 INsight-AI
 
-> Analyze any codebase with AI. Get overviews, learning paths, architecture analysis, and chat with your code. **100% free with Ollama.**
+**The Professional AI Code Analyst for your Terminal.**
 
-## Install
+Analyze, understand, and chat with any codebase in seconds. INsight uses advanced RAG (Retrieval-Augmented Generation) to give you deep architectural insights, dependency maps, and a conversational interface for your code.
 
+---
+
+## ✨ Features
+
+- **🌐 Pro Cloud Storage**: Persistent memory backed by **Supabase**. Your chat history and workspaces follow you anywhere.
+- **🔑 Global Config Manager**: Set your API keys once (`insight config set-key`) and use them across any project.
+- **🧠 Intelligent RAG**: Uses tree-sitter based chunking to understand code structure (Classes, Functions, Imports) better than standard text splitters.
+- **🆓 100% Local Option**: Supports **Ollama** for free, private, local analysis.
+- **⚡ Remote Knowledge Base**: Connects to remote **ChromaDB** servers for centralized team knowledge.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install
 ```bash
 npm install -g insight-ai
 ```
 
-## Quick Start
+### 2. Configure (Choose your AI)
 
+**Option A: Cloud AI (Fastest & Most Accurate)**
 ```bash
-# 1. Setup (first time only)
-insight setup
-
-# 2. Install free AI model (first time only)
-ollama pull qwen2.5-coder
-
-# 3. Analyze your project
-insight analyze ./my-project
-
-# 4. Chat with your code!
-insight chat
+# Save your keys globally (OpenAI, Groq, etc.)
+insight config set-key openai sk-...
 ```
 
-## Commands
+**Option B: 100% Local AI (Free & Private)**
+If you don't have an API key, you can run the AI directly on your computer:
+1. Install [Ollama](https://ollama.com).
+2. Download the recommended code model by running:
+   ```bash
+   ollama run qwen2.5-coder
+   ```
+3. Run INsight with the local provider flags:
+   ```bash
+   insight analyze . --provider ollama --model qwen2.5-coder
+   ```
+
+### 3. Analyze
+Go to your project folder and run:
+```bash
+insight analyze .
+```
+
+### 4. Chat & Explore
+```bash
+# Open interactive chat
+insight chat
+
+# Generate a learning path for the repo
+insight learn
+
+# Map code architecture
+insight architecture
+```
+
+---
+
+## 🛠 Commands
 
 | Command | Description |
 |---------|-------------|
-| `insight analyze <path>` | Analyze a codebase |
-| `insight chat` | Chat with your code (with memory) |
-| `insight overview [path]` | Project overview |
-| `insight learn [path]` | Learning path for the codebase |
-| `insight architecture [path]` | Architecture analysis |
-| `insight deps [path]` | Dependency mapping |
-| `insight report [path]` | Full report (all analysis types) |
-| `insight doctor` | Check system health |
-| `insight setup` | Install/repair dependencies |
+| `insight analyze [path]` | Index and analyze code structure |
+| `insight chat` | Interactive AI chat with code context |
+| `insight config` | Manage global API keys and settings |
+| `insight learn` | Generate a roadmap to learn the codebase |
+| `insight architecture` | Map high-level class and module relationships |
+| `insight report` | Generate a comprehensive PDF/MD report |
+| `insight setup` | Repair or reinstall Python dependencies |
 
-## Options
+---
 
-```bash
--p, --provider    LLM provider: ollama (free) or openai (paid)
--m, --model       Model name override
--d, --persist-dir Vector store directory
--f, --file-types  File types to analyze
--e, --embedding   Embedding: local (free) or openai (paid)
--o, --output      Save report to file
-```
+## ⚙️ How it Works
 
-## Requirements
+1. **Ingest**: Scans your files and builds a metadata code graph.
+2. **Embed**: Converts code into semantic vectors (ChromaDB).
+3. **Persist**: Saves your sessions and preferences to the cloud (Supabase).
+4. **Reason**: Uses LLMs (GPT-4, Claude, or local Llama) to answer complex queries.
 
-- **Node.js** 16+
-- **Python** 3.9+
-- **Ollama** (free, local AI) — [Download](https://ollama.com/download)
+---
 
-## How It Works
+## 📋 Requirements
 
-INsight uses a RAG (Retrieval Augmented Generation) pipeline:
+- **Node.js**: 18+
+- **Python**: 3.9+ (Installed automatically via `postinstall`)
+- **Ollama**: (Optional) For free local AI analysis.
 
-1. **Ingest** — Scans your code files, extracts metadata (functions, classes, imports)
-2. **Chunk** — Splits code into language-aware chunks (Python, JS/TS, Markdown)
-3. **Embed** — Creates vector embeddings (local, free — no API key needed)
-4. **Index** — Stores embeddings in Chroma vector database
-5. **Query** — Uses Ollama LLM to answer questions with code context
+---
 
-Built with: LangChain · Ollama · ChromaDB · HuggingFace Embeddings
-
-## License
-
-MIT
+**License**: MIT  
+**Author**: Piyush Raj  
+**Repository**: [github.com/Piyush-08-bot/insight-ai](https://github.com/Piyush-08-bot/insight-ai)
