@@ -208,36 +208,33 @@ Generates a **deep 12-chapter technical breakdown**:
 
 ```bash
 insight-ai/
-├── python/                     # 🧠 Core AI Engine (Python backend)
-│   └── insight/
-│       ├── api/                # LLM provider integrations (OpenAI, Anthropic, etc.)
-│       ├── chains/             # LangChain pipelines (RAG + reasoning workflows)
-│       ├── chunking/           # Tree-sitter based semantic code splitting
-│       ├── ingestion/          # Codebase scanning & metadata extraction
-│       ├── vectorstore/        # ChromaDB integration (embeddings + retrieval)
-│       ├── database/           # Supabase & persistence layer
-│       ├── cli/                # Python-side CLI execution layer
-│       └── utils/              # Logging, helpers, shared utilities
-│
-├── src/                        # 💻 Terminal UI Layer (TypeScript / React)
-│   ├── components/
-│   │   ├── Chat.tsx
-│   │   ├── Analyze.tsx
-│   │   └── CommandPalette.tsx
-│   ├── hooks/
-│   ├── python-bridge.ts
-│   ├── theme.ts
-│   └── cli.tsx
-│
-├── scripts/
-│   ├── setup.cjs
-│   └── test_providers.py
-│
-├── assets/
-│   └── demo.gif
-│
-├── package.json
-└── README.md
+├── python/
+│   └── insight/                # Core AI & Logic Engine (Python)
+│       ├── api/                # external LLM provider integrations (OpenAI, Anthropic, etc.)
+│       ├── chains/             # LangChain implementation for RAG and analysis
+│       ├── chunking/           # Tree-sitter powered semantic code splitting
+│       ├── cli/                # Python-side CLI entry and argument parsing
+│       ├── database/           # Supabase and persistence layer management
+│       ├── ingestion/          # Codebase scanning and metadata extraction
+│       ├── utils/              # Shared helper functions and logging
+│       └── vectorstore/        # ChromaDB integration for semantic search
+├── src/                        # Terminal UI & CLI Layer (TypeScript/React)
+│   ├── components/             # UI components for the interactive terminal interface
+│   │   ├── Chat.tsx            # Interactive AI chat interface component
+│   │   ├── Analyze.tsx         # Code analysis progress and results UI
+│   │   └── CommandPalette.tsx  # Interactive command selection menu
+│   ├── hooks/                  # Custom React hooks for terminal state management
+│   ├── python-bridge.ts        # Communication layer between Node.js and Python
+│   ├── theme.ts                # Visual styling and color tokens for the TUI
+│   └── cli.tsx                 # Main entry point for the TypeScript CLI
+├── scripts/                    # Development and automation scripts
+│   ├── setup.cjs               # Automated environment and dependency installer
+│   └── test_providers.py       # LLM provider connectivity validation suite
+├── assets/                     # Project media and documentation visual assets
+│   └── demo.gif                # Animated demonstration of the CLI in action
+├── package.json                # Node.js project configuration and dependencies
+└── README.md                   # Project documentation and architectural overview
+
 ```
 ---
 
