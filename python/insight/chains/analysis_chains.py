@@ -496,7 +496,10 @@ def run_stories(
             ch_id_str = f"Phase {ch_num}"
             print(f"  🧵 Weaving {ch['title']}...", flush=True)
 
-        retriever = vectorstore_manager.as_retriever(k=20)
+        # ✦ Dynamic context depth (Fix for Groq 413 / TPM limits)
+        is_local = llm_provider == "ollama"
+        k_val = 20 if is_local else (6 if llm_provider == "groq" else 10)
+        retriever = vectorstore_manager.as_retriever(k=k_val)
         
         prompt_tmpl = f"""{RULES}
 You are a senior software engineer generating a REAL, GROUNDED "Codebase Story".

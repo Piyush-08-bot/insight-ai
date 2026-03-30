@@ -764,6 +764,9 @@ def _handle_llm_error(e, provider, model=None):
         console.print(f"\n[error]⨯ Rate Limit Reached:[/error] {provider.upper()} is throttling requests.")
         console.print(f"[info]Action:[/info] I've already reduced context and tried 2 retries, but the API is still blocked.")
         console.print(f"[info]Tip:[/info] Use [highlight]gpt-4o-mini[/highlight] (it has 10x higher limits) or run locally with [highlight]-p ollama[/highlight].")
+    elif "413" in err_str or "request too large" in err_str or "tpm" in err_str:
+        console.print(f"\n[error]⨯ Token Limit Exceeded:[/error] The request is too large for {provider.upper()}'s current tier.")
+        console.print(f"[info]Tip:[/info] This usually happens with Groq's free tier. Try [highlight]-p ollama[/highlight] for full depth, or use a smaller project for stories.")
     else:
         console.print(f"\n[error]⨯ AI Error:[/error] {str(e)}")
 
