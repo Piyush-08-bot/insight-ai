@@ -204,39 +204,41 @@ Generates a **deep 12-chapter technical breakdown**:
 
 ## 📁 Project Structure
 
-> Modular architecture separating **CLI interface**, **AI core engine**, and **RAG pipeline**
-insight-ai/
-├── python/ # 🧠 Core AI Engine (Python backend)
-│ └── insight/
-│ ├── api/ # LLM provider integrations (OpenAI, Anthropic, etc.)
-│ ├── chains/ # LangChain pipelines (RAG + reasoning workflows)
-│ ├── chunking/ # Tree-sitter based semantic code splitting
-│ ├── ingestion/ # Codebase scanning & metadata extraction
-│ ├── vectorstore/ # ChromaDB integration (embeddings + retrieval)
-│ ├── database/ # Supabase & persistence layer
-│ ├── cli/ # Python-side CLI execution layer
-│ └── utils/ # Logging, helpers, shared utilities
-│
-├── src/ # 💻 Terminal UI Layer (TypeScript / React)
-│ ├── components/ # Interactive terminal UI components
-│ │ ├── Chat.tsx # Conversational interface
-│ │ ├── Analyze.tsx # Analysis progress + results UI
-│ │ └── CommandPalette.tsx # Command navigation system
-│ ├── hooks/ # Custom hooks (state + terminal behavior)
-│ ├── python-bridge.ts # Node ↔ Python communication layer
-│ ├── theme.ts # Terminal styling and UI tokens
-│ └── cli.tsx # CLI entry point (frontend layer)
-│
-├── scripts/ # ⚙️ Dev & automation scripts
-│ ├── setup.cjs # Environment & dependency setup
-│ └── test_providers.py # LLM provider connectivity tests
-│
-├── assets/ # 📦 Media assets
-│ └── demo.gif # CLI demo preview
-│
-├── package.json # Node.js dependencies & config
-└── README.md # Documentation
+> Modular architecture separating CLI interface, AI core engine, and RAG pipeline
 
+```bash
+insight-ai/
+├── python/                     # 🧠 Core AI Engine (Python backend)
+│   └── insight/
+│       ├── api/                # LLM provider integrations (OpenAI, Anthropic, etc.)
+│       ├── chains/             # LangChain pipelines (RAG + reasoning workflows)
+│       ├── chunking/           # Tree-sitter based semantic code splitting
+│       ├── ingestion/          # Codebase scanning & metadata extraction
+│       ├── vectorstore/        # ChromaDB integration (embeddings + retrieval)
+│       ├── database/           # Supabase & persistence layer
+│       ├── cli/                # Python-side CLI execution layer
+│       └── utils/              # Logging, helpers, shared utilities
+│
+├── src/                        # 💻 Terminal UI Layer (TypeScript / React)
+│   ├── components/
+│   │   ├── Chat.tsx
+│   │   ├── Analyze.tsx
+│   │   └── CommandPalette.tsx
+│   ├── hooks/
+│   ├── python-bridge.ts
+│   ├── theme.ts
+│   └── cli.tsx
+│
+├── scripts/
+│   ├── setup.cjs
+│   └── test_providers.py
+│
+├── assets/
+│   └── demo.gif
+│
+├── package.json
+└── README.md
+```
 ---
 
 ## 🧩 Roadmap
