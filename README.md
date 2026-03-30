@@ -1,124 +1,231 @@
 # 🔍 INsight-AI
 
-**The Professional AI Code Analyst for your Terminal.**
+### *Understand Codebases Like Systems — Not Files*
 
-Analyze, understand, and chat with any codebase in seconds. INsight uses advanced RAG (Retrieval-Augmented Generation) to give you deep architectural insights, dependency maps, and a conversational interface for your code.
+<p align="center">
+  <b>AI-powered code intelligence directly in your terminal</b><br/>
+  Analyze • Query • Visualize • Explain
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/CLI-Tool-black?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/RAG-Powered-blue?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/AST-Driven-green?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Local+Cloud-Supported-orange?style=for-the-badge"/>
+</p>
 
 ---
 
-## ✨ Features
+## ⚡ The Problem
 
-- **🌐 Pro Cloud Storage**: Persistent memory backed by **Supabase**. Your chat history and workspaces follow you anywhere.
-- **🔑 Global Config Manager**: Set your API keys once (`insight config set-key`) and use them across any project.
-- **🧠 Intelligent RAG**: Uses tree-sitter based chunking to understand code structure (Classes, Functions, Imports) better than standard text splitters.
-- **🆓 100% Local Option**: Supports **Ollama** for free, private, local analysis.
-- **⚡ Remote Knowledge Base**: Connects to remote **ChromaDB** servers for centralized team knowledge.
-- **📖 Codebase Storytelling**: Generates a 12-chapter technical narrative of your entire project—the single most powerful codebase analysis.
+Modern codebases are:
+
+* Too large to read
+* Too complex to trace
+* Poorly documented
+
+Developers waste hours answering:
+
+* *“Where does this flow start?”*
+* *“What depends on this module?”*
+* *“How does this system actually work?”*
 
 ---
 
-## 🚀 Quick Start
+## 🚀 The Solution
 
-### 1. Install
+**INsight-AI turns your codebase into a queryable system.**
+
+Instead of reading files →
+you **ask questions and get structured answers.**
+
+---
+
+## 🧠 What Makes It Different
+
+| Traditional Tools  | INsight-AI                   |
+| ------------------ | ---------------------------- |
+| Text-based search  | AST-aware understanding      |
+| File-level context | Function/Class-level context |
+| Static docs        | Dynamic explanations         |
+| No reasoning       | LLM-powered reasoning        |
+
+---
+
+## 🎯 Core Capabilities
+
+* 🧠 **AST-Based Code Understanding** (Tree-sitter)
+* 🔍 **Semantic Search (RAG Pipeline)**
+* 💬 **Conversational Code Querying**
+* 🏗 **Architecture Mapping**
+* 📖 **12-Chapter Codebase Story Engine**
+* 🌐 **Cloud + Local Hybrid Execution**
+
+---
+
+## ⚠️ Default Behavior
+
 ```bash
-npm install -g insight-ai
+insight chat
 ```
 
-### 2. Configure (Choose your AI)
-
-**Option A: Cloud AI (Fastest & Most Accurate)**
-Save your keys globally to use them across any project. Supported providers: `openai`, `groq`, `anthropic`, `google`.
+➡️ Internally runs:
 
 ```bash
-# OpenAI (Default)
-insight config set-key openai sk-proj-123...
-
-# Groq (Extreme Speed)
-insight config set-key groq gsk_456...
-
-# Anthropic (Deep Reasoning)
-insight config set-key anthropic sk-ant-789...
-
-# Google Gemini
-insight config set-key google AIzaSy012...
+insight chat -p ollama -m qwen2.5-coder
 ```
 
-**Option B: 100% Local AI (Free & Private)**
-If you don't have an API key, you can run the AI directly on your computer:
-1. Install [Ollama](https://ollama.com).
-2. Download the recommended code model by running:
-   ```bash
-   ollama run qwen2.5-coder
-   ```
-3. Run INsight with the local provider flags:
-   ```bash
-   # Analyze with local model
-   insight analyze . --embedding ollama
+No config needed. Works out of the box.
 
-   # Chat with local model
-   insight chat --provider ollama --model qwen2.5-coder
-   ```
+---
 
-### 3. Analyze
-Go to your project folder and run:
+## ⚡ Quick Demo
+
 ```bash
+# 1. Analyze codebase
 insight analyze .
-```
 
-### 4. Chat & Explore
-```bash
-# Open interactive chat
+# 2. Start chat
 insight chat
 
-# Generate a learning path for the repo
-insight learn
-
-# Map code architecture
-insight architecture
-
-# Generate a 12-chapter technical story of your codebase
-insight story
+# 3. Ask anything
+"Explain authentication flow"
+"Where is state managed?"
+"Give me architecture overview"
 ```
+---
+
+## 💬 Multi-Provider Support
 
 <p align="center">
   <img src="assets/demo.gif" width="800"/>
 </p>
 
+| Provider        | Command                     |
+| --------------- | --------------------------- |
+| OpenAI          | `insight chat -p openai`    |
+| Groq            | `insight chat -p groq`      |
+| Anthropic       | `insight chat -p anthropic` |
+| Google          | `insight chat -p google`    |
+| Local (default) | `insight chat`              |
 
 ---
 
-## 🛠 Commands
+## ⚙️ System Architecture
 
-| Command | Description |
-|---------|-------------|
-| `insight analyze [path]` | Index and analyze code structure |
-| `insight chat` | Interactive AI chat with code context |
-| `insight config` | Manage global API keys and settings |
-| `insight learn` | Generate a roadmap to learn the codebase |
-| `insight architecture` | Map high-level class and module relationships |
-| `insight story` | Generate a 12-chapter technical narrative of the codebase |
-| `insight report` | Generate a comprehensive PDF/MD report |
-| `insight setup` | Repair or reinstall Python dependencies |
+```mermaid
+flowchart TD
 
----
+    A[User Command] --> B[Tree-sitter Parsing]
+    B --> C[AST Chunking]
+    C --> D[Embeddings]
+    D --> E[ChromaDB]
+    E --> F[Retrieval Engine]
+    F --> G[LLM Reasoning]
+    G --> H[CLI Output]
 
-## ⚙️ How it Works
-
-1. **Ingest**: Scans your files and builds a metadata code graph.
-2. **Embed**: Converts code into semantic vectors (ChromaDB).
-3. **Persist**: Saves your sessions and preferences to the cloud (Supabase).
-4. **Reason**: Uses LLMs (GPT-4, Claude, or local Llama) to answer complex queries.
+    D --> I[Local Cache]
+    G --> J[Supabase]
+```
 
 ---
 
-## 📋 Requirements
+## 🧰 CLI Overview
 
-- **Node.js**: 18+
-- **Python**: 3.9+ (Installed automatically via `postinstall`)
-- **Ollama**: (Optional) For free local AI analysis.
+```bash
+insight analyze .
+insight chat
+insight learn
+insight architecture
+insight story
+insight report
+```
 
 ---
 
-**License**: MIT  
-**Author**: Piyush Raj  
-**Repository**: [github.com/Piyush-08-bot/insight-ai](https://github.com/Piyush-08-bot/insight-ai)
+## 🏗 Real Workflows
+
+### 🧑‍💻 New Codebase
+
+```bash
+insight analyze .
+insight story
+insight learn
+```
+
+### 🐛 Debugging
+
+```bash
+insight chat -p openai
+```
+
+### ⚡ Fast Queries
+
+```bash
+insight chat -p groq
+```
+
+### 🔒 Private Mode
+
+```bash
+insight analyze . --embedding ollama
+insight chat -p ollama
+```
+
+---
+
+## 📦 Tech Stack
+
+| Layer      | Tech            |
+| ---------- | --------------- |
+| Parsing    | Tree-sitter     |
+| Embeddings | OpenAI / Ollama |
+| Vector DB  | ChromaDB        |
+| Storage    | Supabase        |
+| Interface  | CLI             |
+
+---
+
+## 📖 Signature Feature
+
+```bash
+insight story
+```
+
+Generates a **deep 12-chapter technical breakdown**:
+
+* Architecture
+* Data flow
+* Dependencies
+* Hidden logic
+* Bottlenecks
+
+---
+
+## 🧩 Roadmap
+
+* [ ] VSCode Extension
+* [ ] Visual Graph UI
+* [ ] Multi-repo linking
+* [ ] Team collaboration
+
+---
+
+## 🧑‍💻 Philosophy
+
+> Code is a system of decisions.
+> INsight helps you understand those decisions.
+
+---
+
+## ⭐ Support
+
+If this helped you:
+
+* Star ⭐ the repo
+* Share with developers
+* Contribute
+
+---
+
+
