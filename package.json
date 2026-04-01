@@ -1,6 +1,6 @@
 {
   "name": "insight-ai",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "AI-powered codebase analysis in your terminal",
   "type": "module",
   "bin": {

@@ -241,10 +241,11 @@ def stream_chat(
     sources = list(set([doc.metadata.get("source", "unknown") for doc in enriched_context]))
     yield {"session_id": str(session_id), "sources": [s for i, s in enumerate(sources) if i < 5]}
 
-    # Truncate context for safety
+    # Truncate context for safety (Groq has tighter TPM limits than OpenAI/Claude)
+    max_context_chars = 12000 if llm_provider == "groq" else 20000
     context_str = "\n\n".join([doc.page_content for doc in enriched_context])
-    if len(context_str) > 20000:
-        context_str = context_str[:20000] + "\n\n[TRUNCATED]"
+    if len(context_str) > max_context_chars:
+        context_str = context_str[:max_context_chars] + "\n\n[TRUNCATED FOR CONTEXT LIMITS]"
 
     from insight.chains.qa_chain import SYSTEM_SYSTEM_PROMPT, HUMAN_PROMPT_TEMPLATE, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
     prompt_messages = ChatPromptTemplate.from_messages([
