@@ -30,6 +30,8 @@ dependencies = [
     "langchain-anthropic>=0.3.0",
     "langchain-google-genai>=0.3.0",
     "langchain-groq>=0.3.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
 ]
 
 [project.optional-dependencies]

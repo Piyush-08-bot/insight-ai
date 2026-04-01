@@ -139,7 +139,63 @@ insight learn
 insight architecture
 insight story
 insight report
+insight whoami
 ```
+
+---
+
+## 👤 User Identity & Management
+
+INsight automatically identifies each user via a **machine fingerprint** — no login or registration required. Each user gets isolated data (vector stores, conversations, workspaces).
+
+### 🚀 Getting Started (Important)
+
+**Always run `analyze` first** — this indexes your codebase and automatically creates your user identity:
+
+```bash
+# Step 1: Analyze your project (required first step)
+insight analyze .
+
+# Step 2: Now you can chat, query, or explore
+insight chat
+```
+
+> **Note:** Running `insight analyze .` is required before any other command. It scans your codebase, generates embeddings, and registers your identity. Without it, commands like `chat` or `whoami` won't have any data to work with.
+
+### Check Your Identity
+
+```bash
+insight whoami
+```
+
+Shows:
+
+```
+╭────────────────── ✦ Your INsight Identity ──────────────────╮
+│   👤 User:         piyushraj                                │
+│   🔑 ID:           775d8f08                                 │
+│   📅 Member Since: Apr 01, 2026                             │
+│   ⏱️  Last Active:  just now                                 │
+│   ☁️  Cloud Sync:   Connected ✓                              │
+│   📦 Projects:     3 indexed                                │
+╰─────────────────────────────────────────────────────────────╯
+```
+
+### Manage API Keys
+
+```bash
+# Save a key globally
+insight config set-key openai sk-your-key-here
+insight config set-key groq gsk_your-key-here
+
+# List saved keys
+insight config list
+
+# Remove a key
+insight config remove openai
+```
+
+Keys are stored locally in `~/.insight/config.json` and are never shared.
 
 ---
 

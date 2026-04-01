@@ -60,18 +60,25 @@ custom_theme = Theme({
 # Global console
 console = Console(theme=custom_theme)
 
+# ─── Global User Context ────────────────────────────────────────
+# Set during cli() startup, used by all commands
+_current_user_id: Optional[str] = None
+_current_machine_id: Optional[str] = None
+
+
 def get_api_key(provider: str, manual_key: Optional[str] = None) -> Optional[str]:
     """
     Get the API key for a provider with the following fallback priority:
     1.  Manual Override (CLI flag)
     2.  Project-level .env
-    3.  Global Config (~/.insight/config.json)
+    3.  Supabase (user-scoped by machine fingerprint)
+    4.  Global Config (~/.insight/config.json)
     """
     # 1. CLI Flag
     if manual_key:
         return manual_key
     
-    # 2. .env (Usually happens automatically if providers load it, but we check here)
+    # 2. .env
     env_vars = {
         "openai": "OPENAI_API_KEY",
         "anthropic": "ANTHROPIC_API_KEY",
@@ -82,21 +89,13 @@ def get_api_key(provider: str, manual_key: Optional[str] = None) -> Optional[str
     if env_name and os.getenv(env_name):
         return os.getenv(env_name)
         
-    # 3. Database (Remote Supabase)
-    from insight.database.manager import db_manager
-    from insight.database.models import User
-    
-    if getattr(db_manager, "SessionLocal", None):
-        try:
-            with next(db_manager.get_session()) as session:
-                if session:
-                    # For now, we assume a single 'admin' user or the first user in the DB
-                    # In a full multi-user app, we would use the authenticated user's ID
-                    user = session.query(User).filter_by(username="admin").first()
-                    if user and user.api_keys and provider.lower() in user.api_keys:
-                        return user.api_keys[provider.lower()]
-        except Exception:
-            pass
+    # 3. Database (Supabase) — scoped by actual machine fingerprint
+    global _current_machine_id
+    if _current_machine_id:
+        from insight.database.manager import db_manager
+        key = db_manager.get_user_api_key(_current_machine_id, provider)
+        if key:
+            return key
 
     # 4. Global Config File (Fallback)
     from insight.utils.config_manager import ConfigManager
@@ -133,16 +132,30 @@ def prewarm_model(provider: str, model: Optional[str] = None):
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version="1.0.6")
 def cli():
     """✨ INsight - Professional AI Code Analyst"""
-    # Initialize Database Schema if DATABASE_URL is present
+    global _current_user_id, _current_machine_id
+
+    # 1. Initialize Database Schema (if DATABASE_URL is present)
     from insight.database.manager import db_manager
     try:
         db_manager.init_db()
-    except Exception as e:
-        # Don't crash if DB is unreachable, just log it
+    except Exception:
         pass
+
+    # 2. Establish User Identity (machine fingerprint)
+    try:
+        from insight.identity import get_or_create_user
+        identity = get_or_create_user()
+        _current_user_id = identity["user_id"]
+        _current_machine_id = identity["machine_id"]
+    except Exception:
+        # Fallback: generate a basic ID
+        import hashlib, platform, getpass
+        raw = f"{platform.node()}::{getpass.getuser()}"
+        _current_machine_id = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        _current_user_id = f"user_{_current_machine_id}"
 
 
 # ─── Analyze Command ────────────────────────────────────────────
@@ -158,8 +171,12 @@ def cli():
 @click.option('--append', is_flag=True, help='Append to existing index instead of clearing')
 def analyze(path, embedding, model, api_key, persist_dir, chunking, append):
     """Analyze a codebase and create a specialized vector index."""
+    global _current_user_id, _current_machine_id
+    abs_path = os.path.abspath(path)
+
     console.print(Panel(
-        f"[highlight]Analyzing Workspace:[/highlight] {path}",
+        f"[highlight]Analyzing Workspace:[/highlight] {abs_path}\n"
+        f"[dim]User: {_current_user_id or 'anonymous'}[/dim]",
         title="[ai]✦ INsight Engine[/ai]",
         border_style="cyan"
     ))
@@ -170,7 +187,11 @@ def analyze(path, embedding, model, api_key, persist_dir, chunking, append):
     # ✦ Clean slate logic
     if not append and os.path.exists(persist_dir):
         with console.status("[info]Cleaning existing index...[/info]"):
-            vs_old = load_vector_store(persist_dir)
+            vs_old = load_vector_store(
+                persist_dir,
+                user_id=_current_user_id,
+                project_path=abs_path,
+            )
             if vs_old:
                 vs_old.clear()
         console.print("[dim]Existing index cleared.[/dim]")
@@ -194,13 +215,36 @@ def analyze(path, embedding, model, api_key, persist_dir, chunking, append):
             documents,
             persist_directory=persist_dir,
             embedding_provider=embedding,
-            embedding_model=model, # Pass model to vector store
-            chunking_strategy=chunking
+            embedding_model=model,
+            chunking_strategy=chunking,
+            user_id=_current_user_id,
+            project_path=abs_path,
         )
 
     stats = vs.get_collection_stats()
     console.print(f"[success]✓[/success] Generated {stats.get('total_vectors', 0)} semantic vectors")
+    console.print(f"[dim]  Collection: {stats.get('collection_name', 'unknown')}[/dim]")
     
+    # ✦ Register workspace in Supabase
+    if _current_machine_id:
+        try:
+            from insight.database.manager import db_manager
+            from insight.identity import get_project_hash
+            project_name = os.path.basename(abs_path)
+            db_manager.register_workspace(
+                owner_machine_id=_current_machine_id,
+                name=project_name,
+                path_hash=get_project_hash(abs_path),
+                collection_name=stats.get('collection_name', ''),
+                metadata={
+                    "path": abs_path,
+                    "documents": len(documents),
+                    "vectors": stats.get('total_vectors', 0),
+                },
+            )
+        except Exception:
+            pass  # Non-critical
+
     console.print("\n[info]Analysis complete. You can now chat with your code:[/info]")
     console.print("  [highlight]insight chat[/highlight]")
 
@@ -217,6 +261,7 @@ def analyze(path, embedding, model, api_key, persist_dir, chunking, append):
 @click.argument('query', required=False)
 def chat(persist_dir, provider, model, api_key, stream, query):
     """Chat interactively with your codebase."""
+    global _current_user_id
     from insight.vectorstore import load_vector_store
     from insight.chains.conversational_chain import chat as do_chat
 
@@ -224,7 +269,11 @@ def chat(persist_dir, provider, model, api_key, stream, query):
     resolved_key = get_api_key(provider, api_key)
     set_provider_env(provider, resolved_key)
 
-    vs = load_vector_store(persist_dir)
+    vs = load_vector_store(
+        persist_dir,
+        user_id=_current_user_id,
+        project_path=os.getcwd(),
+    )
     if not vs:
         console.print("[error]⨯ Workspace not indexed.[/error]")
         console.print("Please run [highlight]insight analyze <path>[/highlight] first.")
@@ -688,11 +737,18 @@ def _generate_dependency_visual(vs):
 
 def _ensure_vectorstore(project_path, persist_dir):
     """Load existing vector store or analyze project first."""
+    global _current_user_id
     from insight.vectorstore import load_vector_store
     from pathlib import Path
 
+    effective_project = project_path or os.getcwd()
+
     if Path(persist_dir).exists():
-        vs = load_vector_store(persist_dir)
+        vs = load_vector_store(
+            persist_dir,
+            user_id=_current_user_id,
+            project_path=effective_project,
+        )
         if vs: return vs
 
     if project_path:
@@ -707,7 +763,12 @@ def _ensure_vectorstore(project_path, persist_dir):
             return None
 
         with console.status("[info]Indexing...[/info]"):
-            vs = create_vector_store(documents, persist_directory=persist_dir)
+            vs = create_vector_store(
+                documents,
+                persist_directory=persist_dir,
+                user_id=_current_user_id,
+                project_path=os.path.abspath(project_path),
+            )
         return vs
 
     console.print("[error]⨯ Workspace not indexed.[/error]")
@@ -797,6 +858,61 @@ def _print_sources(sources):
             import os
             name = os.path.basename(source)
             console.print(f"  [muted]• {name}[/muted]")
+
+
+# ─── Who Am I Command ───────────────────────────────────────────
+
+@cli.command()
+def whoami():
+    """Show current user identity and indexed workspaces."""
+    global _current_user_id, _current_machine_id
+
+    # Identity
+    try:
+        from insight.identity import show_identity
+        console.print(Panel(
+            show_identity(),
+            title="[ai]✦ Your INsight Identity[/ai]",
+            border_style="cyan"
+        ))
+    except Exception as e:
+        console.print(f"[error]⨯ Could not load identity: {e}[/error]")
+        return
+
+    # Workspaces from Supabase
+    from insight.database.manager import db_manager
+    if _current_machine_id and db_manager.is_available:
+        workspaces = db_manager.list_user_workspaces(_current_machine_id)
+        if workspaces:
+            ws_table = Table(title="Your Indexed Workspaces", show_header=True, header_style="bold cyan")
+            ws_table.add_column("Name", style="highlight")
+            ws_table.add_column("Collection", style="muted")
+            ws_table.add_column("Vectors", justify="right")
+            ws_table.add_column("Indexed On", style="dim")
+            for ws in workspaces:
+                meta = ws.get('metadata', {})
+                ws_table.add_row(
+                    ws['name'],
+                    ws['collection_name'],
+                    str(meta.get('vectors', '?')),
+                    ws['created_at'][:10],
+                )
+            console.print(ws_table)
+        else:
+            console.print("[dim]No workspaces indexed yet. Run: insight analyze <path>[/dim]")
+    else:
+        console.print("[dim]Supabase not connected. Workspaces tracked locally only.[/dim]")
+
+    # ChromaDB Collections
+    try:
+        from insight.vectorstore.store import VectorStoreManager
+        collections = VectorStoreManager.list_collections(user_id=_current_user_id)
+        if collections:
+            console.print(f"\n[info]ChromaDB Collections ({len(collections)}):[/info]")
+            for c in collections:
+                console.print(f"  [muted]• {c}[/muted]")
+    except Exception:
+        pass
 
 
 @cli.group()

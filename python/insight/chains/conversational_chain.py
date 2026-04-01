@@ -3,6 +3,11 @@ Conversational Chain for INsight.
 
 Supports multi-turn conversations about a codebase with
 conversation memory that maintains context across questions.
+
+KEY FIXES:
+- Memory overwrite bug removed (was creating new memory every call)
+- Conversations now persist to Supabase when available
+- Session history survives CLI restarts
 """
 
 from typing import Optional, List, Dict, Any, Tuple, Generator
@@ -11,6 +16,7 @@ import os
 import re
 import json
 import hashlib
+import logging
 
 try:
     from langchain.chains import ConversationalRetrievalChain
@@ -24,10 +30,39 @@ from insight.chains.qa_chain import create_qa_chain, get_llm
 from insight.chains.agent_logic import InsightAgent
 from insight.utils.fs_scanner import FilesystemScanner
 
+logger = logging.getLogger(__name__)
 
 # In-memory session storage
 _sessions: Dict[str, ConversationalRetrievalChain] = {}
 _memories: Dict[str, ConversationBufferWindowMemory] = {}
+
+
+def _get_user_machine_id() -> Optional[str]:
+    """Get the current user's machine_id for Supabase persistence."""
+    try:
+        from insight.identity import _generate_machine_fingerprint
+        return _generate_machine_fingerprint()
+    except Exception:
+        return None
+
+
+def _persist_conversation(session_id: str, question: str, answer: str, sources: List[str]):
+    """Save a conversation exchange to Supabase (best-effort, non-blocking)."""
+    try:
+        machine_id = _get_user_machine_id()
+        if not machine_id:
+            return
+
+        from insight.database.manager import db_manager
+        db_manager.save_conversation(
+            machine_id=machine_id,
+            session_id=session_id,
+            question=question,
+            answer=answer,
+            sources=sources,
+        )
+    except Exception as e:
+        logger.debug(f"Conversation persistence failed (non-critical): {e}")
 
 
 def create_conversational_chain(
@@ -35,20 +70,22 @@ def create_conversational_chain(
     session_id: Optional[str] = None,
     llm_provider: str = "ollama",
     llm_model: Optional[str] = None,
-    temperature: float = 0.0, # Lower for reliability
+    temperature: float = 0.0,
     k: int = 12,
     memory_window: int = 10,
     streaming: bool = False
 ) -> tuple:
     """Create or retrieve a conversational chain with memory."""
-    # Create new session if none
+    # Create new session if none provided
     if not session_id:
         hex_id = uuid.uuid4().hex
         short_id = "".join([hex_id[i] for i in range(min(12, len(hex_id)))])
         session_id = f"session_{short_id}"
 
-    # We ALWAYS recreate the chain to ensure prompts are fresh
-    # but reuse the memory object to maintain history.
+    # ─── MEMORY: Reuse existing or create new ───────────────────
+    # BUG FIX: Previously, a new memory was always created on line 66-71,
+    # completely discarding the cached memory from _memories[session_id].
+    # Now we properly reuse the existing memory for multi-turn conversations.
     if session_id in _memories:
         memory = _memories[session_id]
     else:
@@ -59,16 +96,14 @@ def create_conversational_chain(
             output_key="answer"
         )
         _memories[session_id] = memory
-    
+
     llm = get_llm(provider=llm_provider, model=llm_model, temperature=temperature, streaming=streaming)
     retriever = vectorstore_manager.as_retriever(k=k)
 
-    memory = ConversationBufferWindowMemory(
-        k=memory_window,
-        memory_key="chat_history",
-        return_messages=True,
-        output_key="answer"
-    )
+    # NOTE: We do NOT create a new memory here. We reuse the one from above.
+    # This is the critical bug fix — the old code had:
+    #   memory = ConversationBufferWindowMemory(...)  # <-- overwrote cached memory
+    # which broke multi-turn conversations.
 
     from insight.chains.qa_chain import SYSTEM_SYSTEM_PROMPT, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate, HUMAN_PROMPT_TEMPLATE
     
@@ -86,12 +121,11 @@ def create_conversational_chain(
         memory=memory,
         return_source_documents=True,
         verbose=False,
-        # In some versions, 'combine_docs_chain_kwargs' is the correct key
         combine_docs_chain_kwargs={"prompt": chat_prompt}
     )
 
     _sessions[session_id] = chain
-    _memories[session_id] = memory
+    # Memory is already in _memories[session_id], no need to re-assign
 
     return session_id, chain
 
@@ -168,13 +202,18 @@ def chat(
     result = chain.combine_docs_chain.invoke({"input_documents": enriched_context, "question": final_question, "chat_history": chat_history})
     answer = result.get("output_text", "Could not generate answer.")
 
+    sources = sorted(list(set([doc.metadata.get('source', 'unknown') for doc in enriched_context])))[:5]
+
     if session_id in _memories:
          _memories[session_id].save_context({"question": question}, {"answer": answer})
+
+    # Persist to Supabase (non-blocking)
+    _persist_conversation(session_id, question, answer, sources)
 
     return {
         "session_id": str(session_id),
         "answer": str(answer),
-        "sources": sorted(list(set([doc.metadata.get('source', 'unknown') for doc in enriched_context])))[:5],
+        "sources": sources,
     }
 
 
@@ -215,7 +254,6 @@ def stream_chat(
     
     full_answer = ""
     try:
-        # We MUST use a small delay or flush to ensure tokens aren't buffered
         for chunk in chain.combine_docs_chain.llm_chain.llm.stream(prompt_messages):
             token = ""
             if hasattr(chunk, 'content'):
@@ -229,10 +267,14 @@ def stream_chat(
 
         if session_id in _memories:
              _memories[session_id].save_context({"question": question}, {"answer": full_answer})
+
+        # Persist to Supabase (non-blocking)
+        _persist_conversation(session_id, question, full_answer, sources[:5])
+
         yield {"final": True, "answer": full_answer}
     except Exception as e:
         err_msg = str(e)
-        if "429" in err_msg: err_msg = "Rate Limit Reached mod. Please retry in a few minutes."
+        if "429" in err_msg: err_msg = "Rate Limit Reached. Please retry in a few minutes."
         yield {"error": err_msg, "final": True}
         return
 

@@ -3,7 +3,9 @@ Vector Store Management for INsight.
 
 Handles embedding generation (OpenAI, HuggingFace local),
 vector database operations (Chroma), and retrieval.
-Defaults to FREE local embeddings.
+
+KEY CHANGE: Collections are now scoped per user + project using
+the identity system, ensuring complete data isolation.
 """
 
 import os
@@ -11,12 +13,12 @@ from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import hashlib
 import json
+import logging
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
-import logging
 from insight.vectorstore.graph_manager import GraphManager
 
 logger = logging.getLogger(__name__)
@@ -95,6 +97,7 @@ class VectorStoreManager:
     Manages Chroma vector store operations.
 
     Features:
+    - User-scoped collections (each user+project gets isolated data)
     - Batch indexing
     - Persistence and loading
     - Similarity search, MMR search
@@ -104,12 +107,27 @@ class VectorStoreManager:
     def __init__(
         self,
         persist_directory: str = "./chroma_db",
-        collection_name: str = "codebase_vectors",
+        collection_name: Optional[str] = None,
         embedding_provider: str = "local",
-        embedding_model: Optional[str] = None
+        embedding_model: Optional[str] = None,
+        user_id: Optional[str] = None,
+        project_path: Optional[str] = None,
     ):
         self.persist_directory = Path(persist_directory)
-        self.collection_name = collection_name
+        self.user_id = user_id
+        self.project_path = project_path
+        
+        # ─── User-Scoped Collection Name ────────────────────────
+        if collection_name:
+            # Explicit collection name provided (e.g., from test or migration)
+            self.collection_name = collection_name
+        elif user_id and project_path:
+            # Auto-generate scoped name from user + project
+            from insight.identity import get_scoped_collection_name
+            self.collection_name = get_scoped_collection_name(project_path, user_id)
+        else:
+            # Fallback for backward compatibility (single-user / dev mode)
+            self.collection_name = "codebase_vectors"
         
         # Build embedding kwargs
         embed_kwargs = {}
@@ -134,7 +152,28 @@ class VectorStoreManager:
         if chroma_host:
             # Remote Mode using HttpClient
             import chromadb
-            client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
+            try:
+                # chromadb >= 0.6.x: Use Settings for configuration
+                from chromadb.config import Settings
+                settings = Settings(
+                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
+                    anonymized_telemetry=False,
+                )
+                client = chromadb.HttpClient(
+                    host=chroma_host,
+                    port=int(chroma_port),
+                    settings=settings,
+                )
+            except (TypeError, ImportError, AttributeError):
+                # Fallback for older/newer chromadb versions
+                client = chromadb.HttpClient(
+                    host=chroma_host,
+                    port=int(chroma_port),
+                )
+            
+            logger.info(f"Connected to remote ChromaDB at {chroma_host}:{chroma_port}, "
+                        f"collection: {self.collection_name}")
+            
             return Chroma(
                 client=client,
                 collection_name=self.collection_name,
@@ -175,7 +214,7 @@ class VectorStoreManager:
         for i in range(0, total, batch_size):
             batch = [documents[j] for j in range(i, min(i + batch_size, len(documents)))]
             
-            # Phase 4: Filter out chunks already in cache
+            # Filter out chunks already in cache
             new_chunks, cache = self._filter_cached_chunks(batch)
             
             if new_chunks:
@@ -183,11 +222,11 @@ class VectorStoreManager:
                 self._update_cache(new_chunks, cache)
                 indexed += len(new_chunks)
         
-        logger.info(f"Indexing complete. Processed {total} chunks, added {indexed} new vectors to store.")
+        logger.info(f"Indexing complete. Processed {total} chunks, added {indexed} new vectors "
+                     f"to collection '{self.collection_name}'.")
             
     def _get_chunk_hash(self, doc: Document) -> str:
         """Generate a stable hash for a document chunk."""
-        # Use content + source path to ensure unique hash per file/chunk
         return hashlib.md5(f"{doc.page_content}{doc.metadata.get('source', '')}".encode()).hexdigest()
 
     def _filter_cached_chunks(self, chunks: List[Document]) -> Tuple[List[Document], Dict[str, bool]]:
@@ -276,7 +315,7 @@ class VectorStoreManager:
         # Supplement with 'Context Clips' from related files
         extra_docs = []
         rel_files = sorted(list(related_files))
-        for rel_file in rel_files[:3]: # Limit to avoid context bloat
+        for rel_file in rel_files[:3]:  # Limit to avoid context bloat
             rel_docs = self.search(f"Overview of {rel_file}", k=1, filter_dict={"source": str(rel_file)})
             if rel_docs:
                 extra_docs.append(rel_docs[0])
@@ -300,24 +339,18 @@ class VectorStoreManager:
             "main.py", "app.py", "index.js", "server.js", "__init__.py"
         ]
         
-        # We try to find these files in the vector store
         context_parts = []
-        
-        # Simple approach: Search for these filenames in metadata
-        # Chroma similarity search with a filter is better
         for filename in priority_files:
             try:
-                # Search for chunks where source ends with the priority filename
                 docs = self.vectorstore.similarity_search(
                     query=f"File content of {filename}",
                     k=1,
                     filter={"source": {"$like": f"%{filename}"}}
                 )
                 if docs:
-                    content = docs[0].page_content[:1000] # Limit size
+                    content = docs[0].page_content[:1000]
                     context_parts.append(f"--- High-Level Info: {filename} ---\n{content}")
             except Exception:
-                # If $like is not supported or fails, skip
                 continue
                 
         return "\n\n".join(context_parts)
@@ -330,6 +363,7 @@ class VectorStoreManager:
                 'collection_name': self.collection_name,
                 'total_vectors': collection.count(),
                 'persist_directory': str(self.persist_directory),
+                'user_id': self.user_id or 'unscoped',
             }
         except Exception as e:
             return {'error': str(e)}
@@ -339,7 +373,7 @@ class VectorStoreManager:
         try:
             self.vectorstore.delete_collection()
             self.vectorstore = self._load_or_create()
-            logger.info("Vector store cleared")
+            logger.info(f"Vector store collection '{self.collection_name}' cleared")
         except Exception as e:
             logger.error(f"Error clearing store: {e}")
 
@@ -364,6 +398,33 @@ class VectorStoreManager:
             logger.error(f"Error getting all documents: {e}")
             return []
 
+    @staticmethod
+    def list_collections(persist_directory: str = "./chroma_db", user_id: Optional[str] = None) -> List[str]:
+        """
+        List all ChromaDB collections, optionally filtered by user_id prefix.
+        Useful for debugging and the 'insight whoami' command.
+        """
+        try:
+            chroma_host = os.getenv("CHROMA_HOST")
+            chroma_port = os.getenv("CHROMA_PORT", "8000")
+
+            import chromadb
+            if chroma_host:
+                client = chromadb.HttpClient(host=chroma_host, port=int(chroma_port))
+            else:
+                client = chromadb.PersistentClient(path=str(persist_directory))
+
+            collections = client.list_collections()
+            names = [c.name for c in collections]
+
+            if user_id:
+                names = [n for n in names if n.startswith(user_id[:20])]
+
+            return names
+        except Exception as e:
+            logger.error(f"Error listing collections: {e}")
+            return []
+
 
 # ─── Convenience functions ──────────────────────────────────────
 
@@ -374,7 +435,9 @@ def create_vector_store(
     embedding_model: Optional[str] = None,
     chunking_strategy: str = "ast",
     chunk_size: int = 1000,
-    chunk_overlap: int = 200
+    chunk_overlap: int = 200,
+    user_id: Optional[str] = None,
+    project_path: Optional[str] = None,
 ) -> VectorStoreManager:
     """
     Create a vector store from documents (convenience function).
@@ -385,6 +448,8 @@ def create_vector_store(
         embedding_provider: "local" (free) or "openai" (paid)
         chunk_size: Chunk size for splitting
         chunk_overlap: Overlap between chunks
+        user_id: User ID for scoped collection (from identity system)
+        project_path: Project path for collection scoping
 
     Returns:
         VectorStoreManager instance
@@ -395,7 +460,7 @@ def create_vector_store(
     if chunking_strategy == "ast":
         from insight.chunking import ASTChunker
         chunker = ASTChunker()
-        chunks = chunker.chunk_document_list(documents) # Using list-processing method
+        chunks = chunker.chunk_document_list(documents)
     else:
         chunker = CodeChunker(ChunkingConfig(
             chunk_size=chunk_size,
@@ -409,7 +474,9 @@ def create_vector_store(
     manager = VectorStoreManager(
         persist_directory=persist_directory,
         embedding_provider=embedding_provider,
-        embedding_model=embedding_model
+        embedding_model=embedding_model,
+        user_id=user_id,
+        project_path=project_path,
     )
     manager.index_documents(chunks)
 
@@ -419,15 +486,24 @@ def create_vector_store(
 def load_vector_store(
     persist_directory: str = "./chroma_db",
     embedding_provider: str = "local",
-    embedding_model: Optional[str] = None
+    embedding_model: Optional[str] = None,
+    user_id: Optional[str] = None,
+    project_path: Optional[str] = None,
+    collection_name: Optional[str] = None,
 ) -> Optional[VectorStoreManager]:
     """Load an existing vector store."""
-    if not Path(persist_directory).exists():
+    chroma_host = os.getenv("CHROMA_HOST")
+    
+    # For remote ChromaDB, don't check local directory
+    if not chroma_host and not Path(persist_directory).exists():
         logger.warning(f"Vector store not found at {persist_directory}")
         return None
 
     return VectorStoreManager(
         persist_directory=persist_directory,
         embedding_provider=embedding_provider,
-        embedding_model=embedding_model
+        embedding_model=embedding_model,
+        user_id=user_id,
+        project_path=project_path,
+        collection_name=collection_name,
     )
