@@ -319,5 +319,4 @@ If this helped you:
 * Contribute(Contributing guidelines will be added soon. Stay tuned!)
 
 ---
-YOLO badge test 😎
 
