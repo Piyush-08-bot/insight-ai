@@ -316,8 +316,8 @@ If this helped you:
 
 * Star ⭐ the repo
 * Share with developers
-* Contribute
+* Contribute(Contributing guidelines will be added soon. Stay tuned!)
 
 ---
-
+YOLO badge test 😎
 
